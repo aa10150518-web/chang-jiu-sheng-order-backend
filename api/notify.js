@@ -32,7 +32,7 @@ module.exports = async function handler(req, res) {
     const lineUserId = process.env.LINE_USER_ID;
     const resendApiKey = process.env.RESEND_API_KEY;
     const adminEmail = process.env.ADMIN_EMAIL;
-    const mailFrom = process.env.MAIL_FROM || '昌久貹 <onboarding@resend.dev>';
+    const mailFrom = '昌久貹 <order@changjiusheng.com>';
 
     const studentMessage = [
       `${studentName} 您好：`,
