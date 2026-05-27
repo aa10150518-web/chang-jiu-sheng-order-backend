@@ -23,6 +23,10 @@ module.exports = async function handler(req, res) {
     const total = Number(body.total || 0);
     const payment = body.payment || '未選擇';
     const note = body.note || '';
+    const orderType = body.orderType || '';
+    const isRegistration = orderType === 'registration' || (!orderType && /(課|班|認證|大賽|考核|模擬考|講師|參賽)/.test(items));
+    const customerAction = isRegistration ? '報名' : '訂購';
+    const studentSubject = isRegistration ? '報名確認' : '訂單確認';
 
     const lineToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
     const lineUserId = process.env.LINE_USER_ID;
@@ -33,18 +37,18 @@ module.exports = async function handler(req, res) {
     const studentMessage = [
       `${studentName} 您好：`,
       '',
-      '我們已收到您的報名資料，以下是本次報名內容：',
+      `我們已收到您的${customerAction}資料，以下是本次${customerAction}內容：`,
       '',
       `訂單編號：${orderNo || '系統已建立'}`,
-      '報名項目：',
-      items || '詳見報名資料',
+      `${customerAction}項目：`,
+      items || `詳見${customerAction}資料`,
       '',
       `合計金額：${total > 0 ? `NT$ ${total.toLocaleString('zh-TW')}` : '含洽詢項目'}`,
       `付款方式：${payment}`,
       note ? `備註：${note}` : '',
       '',
       '若資料有誤，請直接回覆 LINE 官方帳號與我們聯繫。',
-      '謝謝您報名昌久貹課程。',
+      isRegistration ? '謝謝您報名昌久貹課程。' : '謝謝您訂購昌久貹作品。',
     ].filter(Boolean).join('\n');
 
     const jobs = [];
@@ -108,7 +112,7 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify({
             from: mailFrom,
             to: studentEmail,
-            subject: `昌久貹｜報名確認${orderNo ? ` ${orderNo}` : ''}`,
+            subject: `昌久貹｜${studentSubject}${orderNo ? ` ${orderNo}` : ''}`,
             text: studentMessage,
           }),
         }).then(async (response) => ({
