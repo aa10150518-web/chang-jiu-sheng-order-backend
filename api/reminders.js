@@ -20,6 +20,17 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
   }
 
+  const searchParams = new URL(req.url || '/api/reminders', 'https://changjiusheng.local').searchParams;
+  if (req.method === 'GET' && searchParams.get('check') === '1') {
+    const targetDate = ymd(addDays(todayInTaipei(), 1));
+    return sendJson(res, 200, {
+      ok: true,
+      mode: 'check',
+      targetDate,
+      note: '只檢查課前提醒日期，不會寄信',
+    });
+  }
+
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
     return sendJson(res, 401, { ok: false, error: 'Unauthorized' });
