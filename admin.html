@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>昌久貹｜報名後台</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f7f3ea;color:#2b2117;font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif}
+    header{position:sticky;top:0;z-index:5;background:#fffdf8;border-bottom:1px solid #dfc985;padding:14px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    h1{font-size:18px;margin:0;font-family:"Noto Serif TC",serif;letter-spacing:1px}
+    main{max-width:1120px;margin:0 auto;padding:14px}
+    .login,.toolbar,.order{background:#fffdf8;border:1px solid #dfc985;border-radius:8px;box-shadow:0 8px 22px rgba(70,48,18,.08)}
+    .login{max-width:420px;margin:50px auto;padding:18px}
+    .toolbar{padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 140px 160px auto;gap:8px}
+    input,select,textarea,button{font:inherit;border-radius:6px}
+    input,select,textarea{width:100%;border:1px solid #d6c18b;background:#fff;padding:10px;color:#2b2117}
+    button{border:0;background:#8b6b1a;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer}
+    button.secondary{background:#5c4730}
+    button.ghost{background:#fff;color:#8b6b1a;border:1px solid #c9a84c}
+    .list{display:grid;gap:10px}
+    .order{padding:14px}
+    .order-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+    .name{font-weight:900;font-size:17px}
+    .meta{font-size:12px;color:#6d604d;line-height:1.7}
+    .status{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;background:#f0e3bd;color:#6a4b00;white-space:nowrap}
+    .status.paid{background:#dff4df;color:#236126}
+    .status.onsite_payment{background:#dcecf8;color:#15506f}
+    .status.cancelled,.status.refunded{background:#f5dddd;color:#9b2b1a}
+    .status.deleted{background:#e8e2d7;color:#6d604d}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}
+    .items{white-space:pre-wrap;background:#faf5e8;border:1px solid #ead9a8;border-radius:6px;padding:10px;font-size:13px;line-height:1.8}
+    .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    label{font-size:12px;color:#6d604d;font-weight:700;display:block;margin-bottom:4px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .notice{font-size:13px;line-height:1.8;color:#6d604d;margin-top:8px}
+    .hidden{display:none!important}
+    @media (max-width:760px){
+      header{align-items:flex-start;flex-direction:column}
+      .toolbar{grid-template-columns:1fr}
+      .grid{grid-template-columns:1fr}
+      .fields{grid-template-columns:1fr}
+      .order-head{flex-direction:column}
+      button{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>昌久貹｜報名後台</h1>
+    <button class="ghost hidden" id="logoutBtn" type="button">登出</button>
+  </header>
+
+  <main>
+    <section class="login" id="loginBox">
+      <h2 style="font-size:18px;margin:0 0 12px;">後台登入</h2>
+      <label for="tokenInput">管理密碼</label>
+      <input id="tokenInput" type="password" autocomplete="current-password" placeholder="請輸入管理密碼">
+      <button style="width:100%;margin-top:12px;" type="button" onclick="login()">登入</button>
+      <div class="notice">這組密碼會對應 Vercel 的 ADMIN_TOKEN 設定。</div>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="toolbar">
+        <input id="searchInput" placeholder="搜尋姓名、電話、Email、LINE、訂單編號">
+        <select id="statusFilter">
+          <option value="all">全部狀態</option>
+          <option value="pending_payment">待付款</option>
+          <option value="paid">已付款</option>
+          <option value="onsite_payment">現場付款</option>
+          <option value="cancelled">已取消</option>
+          <option value="refunded">已退款</option>
+          <option value="deleted">已刪除</option>
+        </select>
+        <input id="monthFilter" type="month" aria-label="訂單月份">
+        <button type="button" onclick="loadOrders()">重新整理</button>
+      </div>
+      <div class="notice" id="summary"></div>
+      <div class="list" id="orders"></div>
+    </section>
+  </main>
+
+  <script>
+    const labels={pending_payment:'待付款',paid:'已付款',onsite_payment:'現場付款',cancelled:'已取消',refunded:'已退款',deleted:'已刪除'};
+    let token=localStorage.getItem('cjsAdminToken')||'';
+
+    function api(path,options={}){
+      return fetch(path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,...(options.headers||{})}});
+    }
+
+    function escapeHtml(text){
+      return String(text||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    function login(){
+      token=document.getElementById('tokenInput').value.trim();
+      if(!token){alert('請輸入管理密碼');return;}
+      localStorage.setItem('cjsAdminToken',token);
+      showApp();
+      loadOrders();
+    }
+
+    function logout(){
+      localStorage.removeItem('cjsAdminToken');
+      token='';
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.getElementById('loginBox').classList.remove('hidden');
+    }
+
+    function showApp(){
+      document.getElementById('loginBox').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+    }
+
+    async function loadOrders(){
+      const q=document.getElementById('searchInput').value.trim();
+      const status=document.getElementById('statusFilter').value;
+      const month=document.getElementById('monthFilter').value;
+      const params=new URLSearchParams({status});
+      if(q)params.set('q',q);
+      if(month)params.set('month',month);
+      const res=await api('/api/admin/orders?'+params.toString());
+      const data=await res.json().catch(()=>({ok:false,error:'讀取失敗'}));
+      if(res.status===401){alert('管理密碼不正確');logout();return;}
+      if(!data.ok){alert(data.error||'讀取失敗');return;}
+      renderOrders(data.orders||[]);
+    }
+
+    function renderOrders(orders){
+      document.getElementById('summary').textContent='共 '+orders.length+' 筆訂單';
+      const box=document.getElementById('orders');
+      if(!orders.length){box.innerHTML='<div class="order">目前沒有訂單。</div>';return;}
+      box.innerHTML=orders.map(order=>{
+        const id=escapeHtml(order.order_no);
+        return `<article class="order" data-order="${id}">
+          <div class="order-head">
+            <div>
+              <div class="name">${escapeHtml(order.student_name||'未填姓名')}</div>
+              <div class="meta">
+                ${escapeHtml(order.order_no)} · ${escapeHtml(order.phone||'未填電話')} · LINE ${escapeHtml(order.line_id||'未填')}<br>
+                ${escapeHtml(order.student_email||'未填 Email')}<br>
+                建立時間：${escapeHtml((order.created_at||'').replace('T',' ').slice(0,16))}
+              </div>
+            </div>
+            <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'待付款'}</span>
+          </div>
+          <div class="grid">
+            <div>
+              <div class="items">${escapeHtml(order.items_text||order.session_label||'')}</div>
+              <div class="meta" style="margin-top:8px;">合計：${order.total?('NT$ '+Number(order.total).toLocaleString()):'含洽詢項目'}｜付款：${escapeHtml(order.payment||'')}</div>
+            </div>
+            <div class="fields">
+              <div>
+                <label>付款狀態</label>
+                <select data-field="status">
+                  ${Object.keys(labels).map(v=>`<option value="${v}" ${order.status===v?'selected':''}>${labels[v]}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label>上課日期</label>
+                <input data-field="sessionDate" type="date" value="${escapeHtml(order.session_date||'')}">
+              </div>
+              <div>
+                <label>上課時間</label>
+                <input data-field="sessionTime" placeholder="例：13:00-17:00" value="${escapeHtml(order.session_time||'')}">
+              </div>
+              <div style="grid-column:1/-1">
+                <label>課程/場次</label>
+                <input data-field="sessionLabel" value="${escapeHtml(order.session_label||'')}">
+              </div>
+              <div style="grid-column:1/-1">
+                <label>上課地點</label>
+                <input data-field="sessionLocation" placeholder="例：台中教室｜台中市東區東光園路115號" value="${escapeHtml(order.session_location||'')}">
+              </div>
+              <div style="grid-column:1/-1">
+                <label>給學員的提醒備註</label>
+                <textarea data-field="studentNotice" rows="3" placeholder="例：請提前 10 分鐘抵達，現場備有材料，無需自行準備。">${escapeHtml(order.student_notice||'')}</textarea>
+              </div>
+              <div style="grid-column:1/-1">
+                <label>內部備註</label>
+                <textarea data-field="note" rows="3">${escapeHtml(order.note||'')}</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" onclick="saveOrder('${id}',false)">儲存</button>
+            <button class="secondary" type="button" onclick="saveOrder('${id}',true)">儲存並寄改期通知</button>
+            <button class="ghost" type="button" onclick="deleteOrder('${id}')">刪除/隱藏</button>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    async function saveOrder(orderNo,notifyReschedule){
+      const card=document.querySelector(`[data-order="${CSS.escape(orderNo)}"]`);
+      const payload={
+        orderNo,
+        status:card.querySelector('[data-field="status"]').value,
+        sessionDate:card.querySelector('[data-field="sessionDate"]').value,
+        sessionTime:card.querySelector('[data-field="sessionTime"]').value,
+        sessionLocation:card.querySelector('[data-field="sessionLocation"]').value,
+        studentNotice:card.querySelector('[data-field="studentNotice"]').value,
+        sessionLabel:card.querySelector('[data-field="sessionLabel"]').value,
+        note:card.querySelector('[data-field="note"]').value,
+        notifyReschedule
+      };
+      const res=await api('/api/admin/orders',{method:'PATCH',body:JSON.stringify(payload)});
+      const data=await res.json().catch(()=>({ok:false,error:'儲存失敗'}));
+      if(!data.ok){alert(data.error||'儲存失敗');return;}
+      alert(payload.status==='paid'?'已儲存。若是第一次改為已付款，系統會寄付款確認信。':'已儲存');
+      loadOrders();
+    }
+
+    async function deleteOrder(orderNo){
+      if(!confirm('確定要把這筆訂單刪除/隱藏嗎？一般清單會看不到，也不會寄課前通知。')) return;
+      const res=await api('/api/admin/orders',{method:'PATCH',body:JSON.stringify({orderNo,status:'deleted'})});
+      const data=await res.json().catch(()=>({ok:false,error:'刪除失敗'}));
+      if(!data.ok){alert(data.error||'刪除失敗');return;}
+      alert('已刪除/隱藏');
+      loadOrders();
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click',logout);
+    document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadOrders();});
+    document.getElementById('statusFilter').addEventListener('change',loadOrders);
+    document.getElementById('monthFilter').addEventListener('change',loadOrders);
+    if(token){showApp();loadOrders();}
+  </script>
+</body>
+</html>
