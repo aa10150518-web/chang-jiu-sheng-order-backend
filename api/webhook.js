@@ -1,44 +1,23 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(200).json({ ok: true });
+const { setCors, sendJson, parseBody } = require('./_lib');
+
+module.exports = async function handler(req, res) {
+  setCors(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  const body = req.body || {};
-  const events = body.events || [];
-
-  for (const event of events) {
-    const userId = event?.source?.userId;
-    const replyToken = event?.replyToken;
-
-    if (userId && replyToken) {
-      await replyLineMessage(replyToken, [
-        "你的 LINE User ID：",
-        userId,
-        "",
-        "請把這串填到 Vercel 的 LINE_OWNER_USER_ID"
-      ].join("\n"));
-    }
+  if (req.method !== 'POST') {
+    return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
   }
 
-  return res.status(200).json({ ok: true });
-}
-
-async function replyLineMessage(replyToken, text) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-
-  if (!token) {
-    return;
+  try {
+    // LINE webhook only needs a quick 200 response here.
+    // Do not auto-reply to customers from this endpoint.
+    parseBody(req);
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error('webhook error', error);
+    return sendJson(res, 200, { ok: true });
   }
-
-  await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: "text", text }]
-    })
-  });
-}
+};
