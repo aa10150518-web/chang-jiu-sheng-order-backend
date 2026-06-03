@@ -216,6 +216,10 @@ function extractMainCourse(order) {
 
 function normalizeOrder(body) {
   const mainCourse = extractMainCourse(body);
+  const noteParts = [body.note || ''];
+  if (body.shippingAddress && !String(body.note || '').includes('收件地址')) {
+    noteParts.push(`收件地址：${body.shippingAddress}`);
+  }
   return {
     order_no: body.orderNo || `CJS-${Date.now().toString().slice(-8)}`,
     status: 'pending_payment',
@@ -230,13 +234,13 @@ function normalizeOrder(body) {
     items: Array.isArray(body.cartItems) ? body.cartItems : [],
     total: Number(body.total || 0),
     payment: body.payment || '',
-    note: body.note || '',
+    note: noteParts.filter(Boolean).join('\n'),
     student_notice: body.studentNotice || '',
     course_title: mainCourse.courseTitle,
     session_label: mainCourse.sessionLabel,
     session_date: mainCourse.sessionDate,
     session_time: body.sessionTime || '',
-    session_location: body.sessionLocation || '',
+    session_location: body.sessionLocation || body.shippingAddress || '',
   };
 }
 
@@ -326,6 +330,10 @@ function composeReminder(order) {
 }
 
 function orderKind(order) {
+  if (order.order_type === 'product') return 'product';
+  if (order.order_type === 'course' || order.order_type === 'registration') return 'course';
+  if (order.order_type === 'competition' || order.order_type === 'contest') return 'contest';
+  if (order.order_type === 'certification') return 'certification';
   const text = [
     order.order_type,
     order.items_text,
@@ -363,6 +371,18 @@ function kindText(order) {
       paidClose: '認證前一天系統會再寄出提醒通知。',
     };
   }
+  if (kind === 'product') {
+    return {
+      action: '訂購',
+      item: '訂購項目',
+      date: '預計日期',
+      time: '預計時間',
+      location: '收件資訊',
+      reminderIntro: '提醒您，訂購作品的後續通知請留意 Email 或 LINE。',
+      reminderClose: '如需修改收件資料或訂製內容，請透過 LINE 與我們聯繫。',
+      paidClose: '我們會依訂單內容安排製作與後續通知。',
+    };
+  }
   return {
     action: '課程報名',
     item: '課程項目',
@@ -394,7 +414,7 @@ function composeStudentConfirmation(order) {
     '請完成匯款後，透過 LINE 傳送匯款截圖與訂單編號，待確認款項後會寄出付款確認通知。',
     '',
     `訂單編號：${order.order_no}`,
-    `${labels.item}：${order.items_text || order.session_label || order.course_title || '報名項目'}`,
+    `${labels.item}：${order.items_text || order.session_label || order.course_title || labels.item}`,
     ...classInfoLines(order),
     `合計金額：${order.total > 0 ? `NT$ ${order.total.toLocaleString('zh-TW')}` : '含洽詢項目'}`,
     `付款方式：${order.payment || '未選擇'}`,
@@ -414,7 +434,7 @@ function composePaymentConfirmation(order) {
     `您的款項已確認，${labels.action}狀態已更新為「已付款」。`,
     '',
     `訂單編號：${order.order_no}`,
-    `${labels.item}：${order.items_text || order.session_label || order.course_title || '報名項目'}`,
+    `${labels.item}：${order.items_text || order.session_label || order.course_title || labels.item}`,
     ...classInfoLines(order),
     '',
     labels.paidClose,
@@ -430,7 +450,7 @@ function composeRescheduleNotice(order) {
     `您的${labels.action}資訊已更新。`,
     '',
     `訂單編號：${order.order_no}`,
-    `${labels.item}：${order.session_label || order.course_title || order.items_text || '報名項目'}`,
+    `${labels.item}：${order.session_label || order.course_title || order.items_text || labels.item}`,
     ...classInfoLines(order),
     '',
     '請依更新後資訊安排出席，如有問題請與我們聯繫。',
@@ -446,7 +466,7 @@ function composeReminder(order) {
     labels.reminderIntro,
     '',
     `訂單編號：${order.order_no}`,
-    `${labels.item}：${order.session_label || order.course_title || order.items_text || '報名項目'}`,
+    `${labels.item}：${order.session_label || order.course_title || order.items_text || labels.item}`,
     ...classInfoLines(order),
     '',
     labels.reminderClose,

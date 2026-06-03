@@ -14,6 +14,28 @@ function encodeFilter(value) {
   return encodeURIComponent(value || '');
 }
 
+function orderSubjectLabel(orderType) {
+  return {
+    product: '訂購作品',
+    course: '課程報名',
+    registration: '課程報名',
+    certification: '認證報名',
+    competition: '競賽報名',
+    contest: '競賽報名',
+  }[orderType] || '訂單';
+}
+
+function studentReceivedSubject(orderType) {
+  return {
+    product: '訂購資料已送出',
+    course: '報名資料已送出',
+    registration: '報名資料已送出',
+    certification: '認證報名已送出',
+    competition: '競賽報名已送出',
+    contest: '競賽報名已送出',
+  }[orderType] || '訂單資料已送出';
+}
+
 async function findRecentDuplicate(order) {
   if (!supabaseConfig()) return null;
   const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -87,7 +109,7 @@ module.exports = async function handler(req, res) {
       sendLine(adminMessage),
       sendEmail({
         to: process.env.ADMIN_EMAIL,
-        subject: `昌久貹｜新報名待付款 ${order.order_no}`,
+        subject: `昌久貹｜新${orderSubjectLabel(order.order_type)}待付款 ${order.order_no}`,
         text: adminMessage,
       }),
     ];
@@ -96,7 +118,7 @@ module.exports = async function handler(req, res) {
       jobs.push(
         sendEmail({
           to: order.student_email,
-          subject: `昌久貹｜報名資料已送出 ${order.order_no}`,
+          subject: `昌久貹｜${studentReceivedSubject(order.order_type)} ${order.order_no}`,
           text: composeStudentConfirmation(order),
         })
       );

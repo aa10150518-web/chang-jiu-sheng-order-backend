@@ -28,6 +28,7 @@
     .status.onsite_payment{background:#dcecf8;color:#15506f}
     .status.cancelled,.status.refunded{background:#f5dddd;color:#9b2b1a}
     .status.deleted{background:#e8e2d7;color:#6d604d}
+    .type-badge{display:inline-flex;margin-top:6px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;background:#fff1d6;color:#8b5b00;border:1px solid #e4c77f}
     .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}
     .items{white-space:pre-wrap;background:#faf5e8;border:1px solid #ead9a8;border-radius:6px;padding:10px;font-size:13px;line-height:1.8}
     .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -92,6 +93,15 @@
       return String(text||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
+    function orderTypeLabel(order){
+      const explicit=order.order_type||'';
+      const text=[explicit,order.items_text,order.session_label,order.course_title].filter(Boolean).join(' ');
+      if(explicit==='product')return '訂購作品';
+      if(explicit==='competition'||explicit==='contest'||/(競賽|爭霸戰|團體賽|參賽|大賽)/.test(text))return '國際競賽';
+      if(explicit==='certification'||/(認證|考核|模擬考|講師)/.test(text))return '檢定認證';
+      return '報名課程';
+    }
+
     function login(){
       token=document.getElementById('tokenInput').value.trim();
       if(!token){alert('請輸入管理密碼');return;}
@@ -143,6 +153,7 @@
                 ${escapeHtml(order.student_email||'未填 Email')}<br>
                 建立時間：${escapeHtml((order.created_at||'').replace('T',' ').slice(0,16))}
               </div>
+              <div class="type-badge">${escapeHtml(orderTypeLabel(order))}</div>
             </div>
             <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'待付款'}</span>
           </div>
