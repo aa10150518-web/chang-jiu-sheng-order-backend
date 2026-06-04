@@ -26,6 +26,32 @@ function monthRangeInTaipei(month) {
   };
 }
 
+function inferOrderType(order = {}) {
+  const explicit = order.order_type || '';
+  const text = [
+    explicit,
+    order.items_text,
+    order.session_label,
+    order.course_title,
+  ].filter(Boolean).join(' ');
+
+  if (explicit === 'product') return 'product';
+  if (
+    explicit === 'competition' ||
+    explicit === 'contest' ||
+    /(競賽|爭霸戰|團體賽|參賽|大賽)/.test(text)
+  ) {
+    return 'competition';
+  }
+  if (
+    explicit === 'certification' ||
+    /(認證|考核|模擬考|講師)/.test(text)
+  ) {
+    return 'certification';
+  }
+  return 'course';
+}
+
 async function getOrderByNo(orderNo) {
   const rows = await supabaseFetch(`/orders?order_no=eq.${encodeFilter(orderNo)}&select=*`);
   return Array.isArray(rows) ? rows[0] : null;
@@ -43,6 +69,7 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const status = req.query.status;
+      const orderType = req.query.orderType || 'all';
       const q = (req.query.q || '').trim();
       const monthRange = monthRangeInTaipei(req.query.month);
       const filters = ['select=*', 'order=created_at.desc', 'limit=300'];
@@ -56,7 +83,10 @@ module.exports = async function handler(req, res) {
         const pattern = encodeFilter(`*${q}*`);
         filters.push(`or=(order_no.ilike.${pattern},student_name.ilike.${pattern},phone.ilike.${pattern},line_id.ilike.${pattern},student_email.ilike.${pattern},course_title.ilike.${pattern})`);
       }
-      const orders = await supabaseFetch(`/orders?${filters.join('&')}`);
+      let orders = await supabaseFetch(`/orders?${filters.join('&')}`);
+      if (orderType && orderType !== 'all') {
+        orders = orders.filter((order) => inferOrderType(order) === orderType);
+      }
       return sendJson(res, 200, { ok: true, orders });
     }
 

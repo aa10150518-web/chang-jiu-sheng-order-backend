@@ -12,7 +12,7 @@
     main{max-width:1120px;margin:0 auto;padding:14px}
     .login,.toolbar,.order{background:#fffdf8;border:1px solid #dfc985;border-radius:8px;box-shadow:0 8px 22px rgba(70,48,18,.08)}
     .login{max-width:420px;margin:50px auto;padding:18px}
-    .toolbar{padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 140px 160px auto;gap:8px}
+    .toolbar{padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 140px 140px 160px auto;gap:8px}
     input,select,textarea,button{font:inherit;border-radius:6px}
     input,select,textarea{width:100%;border:1px solid #d6c18b;background:#fff;padding:10px;color:#2b2117}
     button{border:0;background:#8b6b1a;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer}
@@ -73,6 +73,13 @@
           <option value="refunded">已退款</option>
           <option value="deleted">已刪除</option>
         </select>
+        <select id="typeFilter">
+          <option value="all">全部類型</option>
+          <option value="course">課程</option>
+          <option value="product">訂購</option>
+          <option value="certification">檢定</option>
+          <option value="competition">賽事</option>
+        </select>
         <input id="monthFilter" type="month" aria-label="訂單月份">
         <button type="button" onclick="loadOrders()">重新整理</button>
       </div>
@@ -127,8 +134,9 @@
     async function loadOrders(){
       const q=document.getElementById('searchInput').value.trim();
       const status=document.getElementById('statusFilter').value;
+      const orderType=document.getElementById('typeFilter').value;
       const month=document.getElementById('monthFilter').value;
-      const params=new URLSearchParams({status});
+      const params=new URLSearchParams({status,orderType});
       if(q)params.set('q',q);
       if(month)params.set('month',month);
       const res=await api('/api/admin/orders?'+params.toString());
@@ -236,6 +244,7 @@
     document.getElementById('logoutBtn').addEventListener('click',logout);
     document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadOrders();});
     document.getElementById('statusFilter').addEventListener('change',loadOrders);
+    document.getElementById('typeFilter').addEventListener('change',loadOrders);
     document.getElementById('monthFilter').addEventListener('change',loadOrders);
     if(token){showApp();loadOrders();}
   </script>
