@@ -412,8 +412,9 @@ function composeStudentConfirmation(order) {
   const isOnsitePayment = order.status === 'onsite_payment' || /現場/.test(order.payment || '');
   const statusLines = isOnsitePayment
     ? [
-      `我們已收到您的${labels.action}資料，訂單目前狀態為「現場付款」。`,
-      '系統會保留您的報名資料，請依課前通知準時到現場完成繳費與核對。',
+      `${labels.action}成功，系統已為您保留名額。`,
+      '這封信即為報名成功通知，付款狀態為「現場付款」。',
+      '請依課前通知準時到現場完成繳費與核對。',
     ]
     : [
       `我們已收到您的${labels.action}資料，訂單目前狀態為「待付款」。`,

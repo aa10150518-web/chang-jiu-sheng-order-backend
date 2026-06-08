@@ -25,7 +25,18 @@ function orderSubjectLabel(orderType) {
   }[orderType] || '訂單';
 }
 
-function studentReceivedSubject(orderType) {
+function studentReceivedSubject(orderType, order) {
+  const isOnsitePayment = order?.status === 'onsite_payment' || /現場/.test(order?.payment || '');
+  if (isOnsitePayment) {
+    return {
+      product: '訂購確認',
+      course: '報名成功',
+      registration: '報名成功',
+      certification: '認證報名成功',
+      competition: '競賽報名成功',
+      contest: '競賽報名成功',
+    }[orderType] || '報名成功';
+  }
   return {
     product: '訂購資料已送出',
     course: '報名資料已送出',
@@ -119,7 +130,7 @@ module.exports = async function handler(req, res) {
       jobs.push(
         sendEmail({
           to: order.student_email,
-          subject: `昌久貹｜${studentReceivedSubject(order.order_type)} ${order.order_no}`,
+          subject: `昌久貹｜${studentReceivedSubject(order.order_type, order)} ${order.order_no}`,
           text: composeStudentConfirmation(order),
         })
       );
