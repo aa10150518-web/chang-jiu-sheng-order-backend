@@ -253,6 +253,10 @@
         payload.balanceDueAmount=balanceDueAmount;
         payload.balanceDueDate=balanceDueDate;
         payload.partialPaymentNote=partialPaymentNote;
+        payload.partial_paid_amount=partialPaidAmount;
+        payload.balance_due_amount=balanceDueAmount;
+        payload.balance_due_date=balanceDueDate;
+        payload.partial_payment_note=partialPaymentNote;
       }
       const res=await api('/api/admin/orders',{method:'PATCH',body:JSON.stringify(payload)});
       const data=await res.json().catch(()=>({ok:false,error:'儲存失敗'}));
