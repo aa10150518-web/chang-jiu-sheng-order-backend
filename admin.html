@@ -25,6 +25,7 @@
     .meta{font-size:12px;color:#6d604d;line-height:1.7}
     .status{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;background:#f0e3bd;color:#6a4b00;white-space:nowrap}
     .status.paid{background:#dff4df;color:#236126}
+    .status.partial_payment{background:#fff0c8;color:#805500}
     .status.onsite_payment{background:#dcecf8;color:#15506f}
     .status.cancelled,.status.refunded{background:#f5dddd;color:#9b2b1a}
     .status.deleted{background:#e8e2d7;color:#6d604d}
@@ -67,6 +68,7 @@
         <select id="statusFilter">
           <option value="all">全部狀態</option>
           <option value="pending_payment">待付款</option>
+          <option value="partial_payment">部分付款</option>
           <option value="paid">已付款</option>
           <option value="onsite_payment">現場付款</option>
           <option value="cancelled">已取消</option>
@@ -89,7 +91,7 @@
   </main>
 
   <script>
-    const labels={pending_payment:'待付款',paid:'已付款',onsite_payment:'現場付款',cancelled:'已取消',refunded:'已退款',deleted:'已刪除'};
+    const labels={pending_payment:'待付款',partial_payment:'部分付款',paid:'已付款',onsite_payment:'現場付款',cancelled:'已取消',refunded:'已退款',deleted:'已刪除'};
     let token=localStorage.getItem('cjsAdminToken')||'';
 
     function api(path,options={}){
@@ -169,6 +171,7 @@
             <div>
               <div class="items">${escapeHtml(order.items_text||order.session_label||'')}</div>
               <div class="meta" style="margin-top:8px;">合計：${order.total?('NT$ '+Number(order.total).toLocaleString()):'含洽詢項目'}｜付款：${escapeHtml(order.payment||'')}</div>
+              ${order.status==='partial_payment'?`<div class="meta" style="margin-top:4px;">已收：${order.partial_paid_amount?('NT$ '+Number(order.partial_paid_amount).toLocaleString()):'未填'}｜尚欠：${order.balance_due_amount?('NT$ '+Number(order.balance_due_amount).toLocaleString()):'未填'}｜尾款期限：${escapeHtml(order.balance_due_date||'未填')}</div>`:''}
             </div>
             <div class="fields">
               <div>
@@ -176,6 +179,18 @@
                 <select data-field="status">
                   ${Object.keys(labels).map(v=>`<option value="${v}" ${order.status===v?'selected':''}>${labels[v]}</option>`).join('')}
                 </select>
+              </div>
+              <div>
+                <label>已收金額</label>
+                <input data-field="partialPaidAmount" type="number" min="0" step="1" placeholder="例：5000" value="${escapeHtml(order.partial_paid_amount||'')}">
+              </div>
+              <div>
+                <label>尚欠尾款</label>
+                <input data-field="balanceDueAmount" type="number" min="0" step="1" placeholder="例：5000" value="${escapeHtml(order.balance_due_amount||'')}">
+              </div>
+              <div>
+                <label>尾款期限</label>
+                <input data-field="balanceDueDate" type="date" value="${escapeHtml(order.balance_due_date||'')}">
               </div>
               <div>
                 <label>上課日期</label>
@@ -192,6 +207,10 @@
               <div style="grid-column:1/-1">
                 <label>上課地點</label>
                 <input data-field="sessionLocation" placeholder="例：台中教室｜台中市東區東光園路115號" value="${escapeHtml(order.session_location||'')}">
+              </div>
+              <div style="grid-column:1/-1">
+                <label>尾款備註</label>
+                <textarea data-field="partialPaymentNote" rows="2" placeholder="例：尾款三個月後補，或上課前補齊。">${escapeHtml(order.partial_payment_note||'')}</textarea>
               </div>
               <div style="grid-column:1/-1">
                 <label>給學員的提醒備註</label>
@@ -225,10 +244,20 @@
         note:card.querySelector('[data-field="note"]').value,
         notifyReschedule
       };
+      const partialPaidAmount=card.querySelector('[data-field="partialPaidAmount"]').value;
+      const balanceDueAmount=card.querySelector('[data-field="balanceDueAmount"]').value;
+      const balanceDueDate=card.querySelector('[data-field="balanceDueDate"]').value;
+      const partialPaymentNote=card.querySelector('[data-field="partialPaymentNote"]').value;
+      if(payload.status==='partial_payment'||partialPaidAmount||balanceDueAmount||balanceDueDate||partialPaymentNote){
+        payload.partialPaidAmount=partialPaidAmount;
+        payload.balanceDueAmount=balanceDueAmount;
+        payload.balanceDueDate=balanceDueDate;
+        payload.partialPaymentNote=partialPaymentNote;
+      }
       const res=await api('/api/admin/orders',{method:'PATCH',body:JSON.stringify(payload)});
       const data=await res.json().catch(()=>({ok:false,error:'儲存失敗'}));
       if(!data.ok){alert(data.error||'儲存失敗');return;}
-      alert(payload.status==='paid'?'已儲存。待付款第一次改為已付款會寄付款確認信；現場付款改為已付款只做對帳，不會重複寄信。':'已儲存');
+      alert(payload.status==='paid'?'已儲存。待付款或部分付款改為已付款會寄付款確認信；現場付款改為已付款只做對帳，不會重複寄信。':(payload.status==='partial_payment'?'已儲存。第一次改為部分付款會寄部分付款通知信。':'已儲存'));
       loadOrders();
     }
 
