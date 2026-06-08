@@ -258,6 +258,10 @@
       const data=await res.json().catch(()=>({ok:false,error:'儲存失敗'}));
       if(!data.ok){alert(data.error||'儲存失敗');return;}
       alert(payload.status==='paid'?'已儲存。待付款或部分付款改為已付款會寄付款確認信；現場付款改為已付款只做對帳，不會重複寄信。':(payload.status==='partial_payment'?'已儲存。第一次改為部分付款會寄部分付款通知信。':'已儲存'));
+      const statusFilter=document.getElementById('statusFilter');
+      if(statusFilter&&statusFilter.value!=='all'&&statusFilter.value!==payload.status){
+        statusFilter.value=payload.status;
+      }
       loadOrders();
     }
 
