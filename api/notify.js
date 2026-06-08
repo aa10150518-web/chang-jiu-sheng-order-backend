@@ -68,9 +68,10 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
   }
 
-  try {
+    try {
     const body = parseBody(req);
     const order = normalizeOrder(body);
+    const statusLabel = order.status === 'onsite_payment' ? '現場付款' : '待付款';
     const duplicate = await findRecentDuplicate(order);
     if (duplicate) {
       return sendJson(res, 200, {
@@ -92,7 +93,7 @@ module.exports = async function handler(req, res) {
       '',
       `合計：${order.total > 0 ? `NT$ ${order.total.toLocaleString('zh-TW')}` : '含洽詢項目'}`,
       `付款：${order.payment}`,
-      `狀態：待付款`,
+      `狀態：${statusLabel}`,
     ].join('\n');
 
     let savedOrder = null;
@@ -109,7 +110,7 @@ module.exports = async function handler(req, res) {
       sendLine(adminMessage),
       sendEmail({
         to: process.env.ADMIN_EMAIL,
-        subject: `昌久貹｜新${orderSubjectLabel(order.order_type)}待付款 ${order.order_no}`,
+        subject: `昌久貹｜新${orderSubjectLabel(order.order_type)}${statusLabel} ${order.order_no}`,
         text: adminMessage,
       }),
     ];

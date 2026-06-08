@@ -228,7 +228,7 @@
       const res=await api('/api/admin/orders',{method:'PATCH',body:JSON.stringify(payload)});
       const data=await res.json().catch(()=>({ok:false,error:'儲存失敗'}));
       if(!data.ok){alert(data.error||'儲存失敗');return;}
-      alert(payload.status==='paid'?'已儲存。若是第一次改為已付款，系統會寄付款確認信。':'已儲存');
+      alert(payload.status==='paid'?'已儲存。待付款第一次改為已付款會寄付款確認信；現場付款改為已付款只做對帳，不會重複寄信。':'已儲存');
       loadOrders();
     }
 

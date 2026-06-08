@@ -220,9 +220,11 @@ function normalizeOrder(body) {
   if (body.shippingAddress && !String(body.note || '').includes('收件地址')) {
     noteParts.push(`收件地址：${body.shippingAddress}`);
   }
+  const payment = body.payment || '';
+  const isOnsitePayment = /現場/.test(payment) || body.paymentKind === 'onsite' || body.paymentStatus === '現場付款';
   return {
     order_no: body.orderNo || `CJS-${Date.now().toString().slice(-8)}`,
-    status: 'pending_payment',
+    status: isOnsitePayment ? 'onsite_payment' : 'pending_payment',
     order_type: body.orderType || 'registration',
     student_name: body.studentName || body.name || '',
     student_email: body.studentEmail || body.email || '',
@@ -233,7 +235,7 @@ function normalizeOrder(body) {
     items_text: body.items || '',
     items: Array.isArray(body.cartItems) ? body.cartItems : [],
     total: Number(body.total || 0),
-    payment: body.payment || '',
+    payment,
     note: noteParts.filter(Boolean).join('\n'),
     student_notice: body.studentNotice || '',
     course_title: mainCourse.courseTitle,
@@ -407,11 +409,20 @@ function classInfoLines(order) {
 
 function composeStudentConfirmation(order) {
   const labels = kindText(order);
+  const isOnsitePayment = order.status === 'onsite_payment' || /現場/.test(order.payment || '');
+  const statusLines = isOnsitePayment
+    ? [
+      `我們已收到您的${labels.action}資料，訂單目前狀態為「現場付款」。`,
+      '系統會保留您的報名資料，請依課前通知準時到現場完成繳費與核對。',
+    ]
+    : [
+      `我們已收到您的${labels.action}資料，訂單目前狀態為「待付款」。`,
+      '請完成匯款後，透過 LINE 傳送匯款截圖與訂單編號，待確認款項後會寄出付款確認通知。',
+    ];
   return [
     `${order.student_name || '您好'}，您好：`,
     '',
-    `我們已收到您的${labels.action}資料，訂單目前狀態為「待付款」。`,
-    '請完成匯款後，透過 LINE 傳送匯款截圖與訂單編號，待確認款項後會寄出付款確認通知。',
+    ...statusLines,
     '',
     `訂單編號：${order.order_no}`,
     `${labels.item}：${order.items_text || order.session_label || order.course_title || labels.item}`,
@@ -419,7 +430,7 @@ function composeStudentConfirmation(order) {
     `合計金額：${order.total > 0 ? `NT$ ${order.total.toLocaleString('zh-TW')}` : '含洽詢項目'}`,
     `付款方式：${order.payment || '未選擇'}`,
     '',
-    bankText(),
+    isOnsitePayment ? '付款提醒：請於上課或活動當天現場完成付款。' : bankText(),
     '',
     '如有問題，請直接回覆此信或透過 LINE 聯繫我們。',
     '昌久貹',

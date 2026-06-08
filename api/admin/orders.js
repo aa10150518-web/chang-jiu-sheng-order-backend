@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
       const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
 
       const emails = [];
-      if (updated.student_email && body.status === 'paid' && before.status !== 'paid') {
+      if (updated.student_email && body.status === 'paid' && before.status !== 'paid' && before.status !== 'onsite_payment') {
         emails.push(await sendEmail({
           to: updated.student_email,
           subject: `昌久貹｜付款確認 ${updated.order_no}`,
