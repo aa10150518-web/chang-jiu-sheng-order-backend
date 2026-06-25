@@ -121,6 +121,8 @@ module.exports = async function handler(req, res) {
         patch.shipped_at = dateToTaipeiIso(body.shippedDate || body.shipped_date);
         if (patch.shipped_at) patch.shipping_status = 'shipped';
       }
+      if (body.shippingMethod !== undefined || body.shipping_method !== undefined) patch.shipping_method = body.shippingMethod || body.shipping_method || '';
+      if (body.trackingNumber !== undefined || body.tracking_number !== undefined) patch.tracking_number = body.trackingNumber || body.tracking_number || '';
       if (body.shippingNote !== undefined || body.shipping_note !== undefined) patch.shipping_note = body.shippingNote || body.shipping_note || '';
 
       const updatedRows = await supabaseFetch(`/orders?order_no=eq.${encodeFilter(orderNo)}`, {

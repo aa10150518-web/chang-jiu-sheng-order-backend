@@ -119,7 +119,7 @@
     }
 
     function isProductOrder(order){
-      return orderTypeLabel(order)==='????';
+      return orderTypeLabel(order)==='訂購作品';
     }
 
     function orderTypeLabel(order){
@@ -188,7 +188,7 @@
               <div class="type-badge">${escapeHtml(orderTypeLabel(order))}</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-              <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'???'}</span>
+              <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'待付款'}</span>
               ${product?`<span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>`:''}
             </div>
           </div>
@@ -199,7 +199,9 @@
               ${order.status==='partial_payment'?`<div class="meta" style="margin-top:4px;">已收：${order.partial_paid_amount?('NT$ '+Number(order.partial_paid_amount).toLocaleString()):'未填'}｜尚欠：${order.balance_due_amount?('NT$ '+Number(order.balance_due_amount).toLocaleString()):'未填'}｜尾款期限：${escapeHtml(order.balance_due_date||'未填')}</div>`:''}
               ${product?`              <div class="meta ship-row">
                 <span>最晚出貨：${escapeHtml(order.requested_ship_date||'未填')}</span>
-                <span>實際出貨：${escapeHtml(formatDate(order.shipped_at)||'未出貨')}</span>
+                <span>實際出貨：${escapeHtml(formatDate(order.shipped_at)||'未填')}</span>
+                <span>配送：${escapeHtml(shippingMethodLabel(order.shipping_method))}</span>
+                <span>單號：${escapeHtml(order.tracking_number||'未填')}</span>
               </div>`:''}
             </div>
             <div class="fields">
@@ -236,8 +238,27 @@
                 <label>實際出貨日</label>
                 <input data-field="shippedDate" type="date" value="${escapeHtml(formatDate(order.shipped_at))}">
               </div>
-`:''}
               <div>
+                <label>配送方式</label>
+                <select data-field="shippingMethod">
+                  <option value="" ${!order.shipping_method?'selected':''}>請選擇</option>
+                  <option value="home_delivery" ${order.shipping_method==='home_delivery'?'selected':''}>宅配</option>
+                  <option value="post_office" ${order.shipping_method==='post_office'?'selected':''}>郵局</option>
+                  <option value="convenience_store" ${order.shipping_method==='convenience_store'?'selected':''}>店到店</option>
+                  <option value="pickup" ${order.shipping_method==='pickup'?'selected':''}>自取</option>
+                  <option value="other" ${order.shipping_method==='other'?'selected':''}>其他</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1">
+                <label>物流單號</label>
+                <input data-field="trackingNumber" placeholder="例：黑貓 / 郵局 / 店到店單號" value="${escapeHtml(order.tracking_number||'')}">
+              </div>
+              <div style="grid-column:1/-1">
+                <label>出貨備註</label>
+                <textarea data-field="shippingNote" rows="2" placeholder="例：客人指定 7/10 前出貨，已用黑貓寄出。">${escapeHtml(order.shipping_note||'')}</textarea>
+              </div>
+`:''}
+              ${!product?`              <div>
                 <label>上課日期</label>
                 <input data-field="sessionDate" type="date" value="${escapeHtml(order.session_date||'')}">
               </div>
@@ -254,17 +275,13 @@
                 <input data-field="sessionLocation" placeholder="例：台中教室｜台中市東區東光園路115號" value="${escapeHtml(order.session_location||'')}">
               </div>
               <div style="grid-column:1/-1">
-                <label>尾款備註</label>
-                <textarea data-field="partialPaymentNote" rows="2" placeholder="例：尾款三個月後補，或上課前補齊。">${escapeHtml(order.partial_payment_note||'')}</textarea>
-              </div>
-              ${product?`              <div style="grid-column:1/-1">
-                <label>出貨備註</label>
-                <textarea data-field="shippingNote" rows="2" placeholder="例：客人指定 7/10 前出貨，已用黑貓寄出。">${escapeHtml(order.shipping_note||'')}</textarea>
+                <label>給學員的提醒備註</label>
+                <textarea data-field="studentNotice" rows="3" placeholder="例：請提前 10 分鐘抵達，現場備有材料，無需自行準備。">${escapeHtml(order.student_notice||'')}</textarea>
               </div>
 `:''}
               <div style="grid-column:1/-1">
-                <label>給學員的提醒備註</label>
-                <textarea data-field="studentNotice" rows="3" placeholder="例：請提前 10 分鐘抵達，現場備有材料，無需自行準備。">${escapeHtml(order.student_notice||'')}</textarea>
+                <label>尾款備註</label>
+                <textarea data-field="partialPaymentNote" rows="2" placeholder="例：尾款三個月後補，或上課前補齊。">${escapeHtml(order.partial_payment_note||'')}</textarea>
               </div>
               <div style="grid-column:1/-1">
                 <label>內部備註</label>
@@ -286,11 +303,11 @@
       const payload={
         orderNo,
         status:card.querySelector('[data-field="status"]').value,
-        sessionDate:card.querySelector('[data-field="sessionDate"]').value,
-        sessionTime:card.querySelector('[data-field="sessionTime"]').value,
-        sessionLocation:card.querySelector('[data-field="sessionLocation"]').value,
-        studentNotice:card.querySelector('[data-field="studentNotice"]').value,
-        sessionLabel:card.querySelector('[data-field="sessionLabel"]').value,
+        sessionDate:card.querySelector('[data-field="sessionDate"]')?.value||'',
+        sessionTime:card.querySelector('[data-field="sessionTime"]')?.value||'',
+        sessionLocation:card.querySelector('[data-field="sessionLocation"]')?.value||'',
+        studentNotice:card.querySelector('[data-field="studentNotice"]')?.value||'',
+        sessionLabel:card.querySelector('[data-field="sessionLabel"]')?.value||'',
         note:card.querySelector('[data-field="note"]').value,
         notifyReschedule
       };
@@ -303,6 +320,8 @@
         payload.requestedShipDate=card.querySelector('[data-field="requestedShipDate"]').value;
         payload.shippingStatus=card.querySelector('[data-field="shippingStatus"]').value;
         payload.shippedDate=card.querySelector('[data-field="shippedDate"]').value;
+        payload.shippingMethod=card.querySelector('[data-field="shippingMethod"]').value;
+        payload.trackingNumber=card.querySelector('[data-field="trackingNumber"]').value;
         payload.shippingNote=card.querySelector('[data-field="shippingNote"]').value;
       }
       if(payload.status==='partial_payment'||partialPaidAmount||balanceDueAmount||balanceDueDate||partialPaymentNote){

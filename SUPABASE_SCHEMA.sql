@@ -27,6 +27,8 @@ create table if not exists public.orders (
   requested_ship_date date,
   shipping_status text not null default 'not_shipped',
   shipped_at timestamptz,
+  shipping_method text,
+  tracking_number text,
   shipping_note text,
   paid_at timestamptz,
   reminder_sent_at timestamptz,

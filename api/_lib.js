@@ -246,6 +246,8 @@ function normalizeOrder(body) {
     requested_ship_date: body.requestedShipDate || body.requested_ship_date || body.latestShipDate || null,
     shipping_status: body.shippingStatus || body.shipping_status || 'not_shipped',
     shipped_at: body.shippedAt || body.shipped_at || null,
+    shipping_method: body.shippingMethod || body.shipping_method || '',
+    tracking_number: body.trackingNumber || body.tracking_number || '',
     shipping_note: body.shippingNote || body.shipping_note || '',
   };
 }
