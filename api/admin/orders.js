@@ -74,6 +74,7 @@ module.exports = async function handler(req, res) {
       if (orderType && orderType !== 'all') orders = orders.filter((order) => inferOrderType(order) === orderType);
       if (shippingStatus && shippingStatus !== 'all') {
         orders = orders.filter((order) => {
+          if (inferOrderType(order) !== 'product') return false;
           const current = order.shipping_status || 'not_shipped';
           return shippingStatus === 'shipped' ? current === 'shipped' : current !== 'shipped';
         });

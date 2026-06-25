@@ -184,7 +184,7 @@
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
               <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'???'}</span>
-              <span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>
+              ${isProductOrder(order)?`<span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>`:''}
             </div>
           </div>
           <div class="grid">
@@ -284,10 +284,6 @@
         sessionLocation:card.querySelector('[data-field="sessionLocation"]').value,
         studentNotice:card.querySelector('[data-field="studentNotice"]').value,
         sessionLabel:card.querySelector('[data-field="sessionLabel"]').value,
-        requestedShipDate:card.querySelector('[data-field="requestedShipDate"]').value,
-        shippingStatus:card.querySelector('[data-field="shippingStatus"]').value,
-        shippedDate:card.querySelector('[data-field="shippedDate"]').value,
-        shippingNote:card.querySelector('[data-field="shippingNote"]').value,
         note:card.querySelector('[data-field="note"]').value,
         notifyReschedule
       };
@@ -295,6 +291,13 @@
       const balanceDueAmount=card.querySelector('[data-field="balanceDueAmount"]').value;
       const balanceDueDate=card.querySelector('[data-field="balanceDueDate"]').value;
       const partialPaymentNote=card.querySelector('[data-field="partialPaymentNote"]').value;
+      const isProductCard=!!card.querySelector('[data-field="requestedShipDate"]');
+      if(isProductCard){
+        payload.requestedShipDate=card.querySelector('[data-field="requestedShipDate"]').value;
+        payload.shippingStatus=card.querySelector('[data-field="shippingStatus"]').value;
+        payload.shippedDate=card.querySelector('[data-field="shippedDate"]').value;
+        payload.shippingNote=card.querySelector('[data-field="shippingNote"]').value;
+      }
       if(payload.status==='partial_payment'||partialPaidAmount||balanceDueAmount||balanceDueDate||partialPaymentNote){
         payload.partialPaidAmount=partialPaidAmount;
         payload.balanceDueAmount=balanceDueAmount;
