@@ -124,6 +124,7 @@
         post_office:'郵局',
         convenience_store:'店到店',
         pickup:'自取',
+        hand_delivery:'親送',
         other:'其他'
       };
       return labels[value] || value || '未填';
@@ -257,6 +258,7 @@
                   <option value="post_office" ${order.shipping_method==='post_office'?'selected':''}>郵局</option>
                   <option value="convenience_store" ${order.shipping_method==='convenience_store'?'selected':''}>店到店</option>
                   <option value="pickup" ${order.shipping_method==='pickup'?'selected':''}>自取</option>
+                  <option value="hand_delivery" ${order.shipping_method==='hand_delivery'?'selected':''}>親送</option>
                   <option value="other" ${order.shipping_method==='other'?'selected':''}>其他</option>
                 </select>
               </div>
