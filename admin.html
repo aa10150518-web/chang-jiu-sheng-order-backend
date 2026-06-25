@@ -118,6 +118,10 @@
       return (order.shipping_status||'not_shipped')==='shipped' ? '已出貨' : '未出貨';
     }
 
+    function isProductOrder(order){
+      return orderTypeLabel(order)==='????';
+    }
+
     function orderTypeLabel(order){
       const explicit=order.order_type||'';
       const text=[explicit,order.items_text,order.session_label,order.course_title].filter(Boolean).join(' ');
@@ -171,6 +175,7 @@
       if(!orders.length){box.innerHTML='<div class="order">目前沒有訂單。</div>';return;}
       box.innerHTML=orders.map(order=>{
         const id=escapeHtml(order.order_no);
+        const product=isProductOrder(order);
         return `<article class="order" data-order="${id}">
           <div class="order-head">
             <div>
@@ -184,7 +189,7 @@
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
               <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'???'}</span>
-              ${isProductOrder(order)?`<span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>`:''}
+              ${product?`<span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>`:''}
             </div>
           </div>
           <div class="grid">
@@ -192,10 +197,10 @@
               <div class="items">${escapeHtml(order.items_text||order.session_label||'')}</div>
               <div class="meta" style="margin-top:8px;">合計：${order.total?('NT$ '+Number(order.total).toLocaleString()):'含洽詢項目'}｜付款：${escapeHtml(order.payment||'')}</div>
               ${order.status==='partial_payment'?`<div class="meta" style="margin-top:4px;">已收：${order.partial_paid_amount?('NT$ '+Number(order.partial_paid_amount).toLocaleString()):'未填'}｜尚欠：${order.balance_due_amount?('NT$ '+Number(order.balance_due_amount).toLocaleString()):'未填'}｜尾款期限：${escapeHtml(order.balance_due_date||'未填')}</div>`:''}
-              <div class="meta ship-row">
+              ${product?`              <div class="meta ship-row">
                 <span>最晚出貨：${escapeHtml(order.requested_ship_date||'未填')}</span>
                 <span>實際出貨：${escapeHtml(formatDate(order.shipped_at)||'未出貨')}</span>
-              </div>
+              </div>`:''}
             </div>
             <div class="fields">
               <div>
@@ -216,7 +221,7 @@
                 <label>尾款期限</label>
                 <input data-field="balanceDueDate" type="date" value="${escapeHtml(order.balance_due_date||'')}">
               </div>
-              <div>
+              ${product?`              <div>
                 <label>最晚出貨日</label>
                 <input data-field="requestedShipDate" type="date" value="${escapeHtml(order.requested_ship_date||'')}">
               </div>
@@ -231,6 +236,7 @@
                 <label>實際出貨日</label>
                 <input data-field="shippedDate" type="date" value="${escapeHtml(formatDate(order.shipped_at))}">
               </div>
+`:''}
               <div>
                 <label>上課日期</label>
                 <input data-field="sessionDate" type="date" value="${escapeHtml(order.session_date||'')}">
@@ -251,10 +257,11 @@
                 <label>尾款備註</label>
                 <textarea data-field="partialPaymentNote" rows="2" placeholder="例：尾款三個月後補，或上課前補齊。">${escapeHtml(order.partial_payment_note||'')}</textarea>
               </div>
-              <div style="grid-column:1/-1">
+              ${product?`              <div style="grid-column:1/-1">
                 <label>出貨備註</label>
                 <textarea data-field="shippingNote" rows="2" placeholder="例：客人指定 7/10 前出貨，已用黑貓寄出。">${escapeHtml(order.shipping_note||'')}</textarea>
               </div>
+`:''}
               <div style="grid-column:1/-1">
                 <label>給學員的提醒備註</label>
                 <textarea data-field="studentNotice" rows="3" placeholder="例：請提前 10 分鐘抵達，現場備有材料，無需自行準備。">${escapeHtml(order.student_notice||'')}</textarea>
