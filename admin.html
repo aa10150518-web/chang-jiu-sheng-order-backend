@@ -118,6 +118,17 @@
       return (order.shipping_status||'not_shipped')==='shipped' ? '已出貨' : '未出貨';
     }
 
+    function shippingMethodLabel(value){
+      const labels={
+        home_delivery:'宅配',
+        post_office:'郵局',
+        convenience_store:'店到店',
+        pickup:'自取',
+        other:'其他'
+      };
+      return labels[value] || value || '未填';
+    }
+
     function isProductOrder(order){
       return orderTypeLabel(order)==='訂購作品';
     }
