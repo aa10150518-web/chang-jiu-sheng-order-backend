@@ -24,6 +24,10 @@ create table if not exists public.orders (
   session_date date,
   session_time text,
   session_location text,
+  requested_ship_date date,
+  shipping_status text not null default 'not_shipped',
+  shipped_at timestamptz,
+  shipping_note text,
   paid_at timestamptz,
   reminder_sent_at timestamptz,
   created_at timestamptz not null default now(),
@@ -32,4 +36,6 @@ create table if not exists public.orders (
 
 create index if not exists orders_status_idx on public.orders(status);
 create index if not exists orders_session_date_idx on public.orders(session_date);
+create index if not exists orders_requested_ship_date_idx on public.orders(requested_ship_date);
+create index if not exists orders_shipping_status_idx on public.orders(shipping_status);
 create index if not exists orders_created_at_idx on public.orders(created_at desc);

@@ -12,7 +12,7 @@
     main{max-width:1120px;margin:0 auto;padding:14px}
     .login,.toolbar,.order{background:#fffdf8;border:1px solid #dfc985;border-radius:8px;box-shadow:0 8px 22px rgba(70,48,18,.08)}
     .login{max-width:420px;margin:50px auto;padding:18px}
-    .toolbar{padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 140px 140px 160px auto;gap:8px}
+    .toolbar{padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 130px 130px 130px 150px auto;gap:8px}
     input,select,textarea,button{font:inherit;border-radius:6px}
     input,select,textarea{width:100%;border:1px solid #d6c18b;background:#fff;padding:10px;color:#2b2117}
     button{border:0;background:#8b6b1a;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer}
@@ -29,6 +29,9 @@
     .status.onsite_payment{background:#dcecf8;color:#15506f}
     .status.cancelled,.status.refunded{background:#f5dddd;color:#9b2b1a}
     .status.deleted{background:#e8e2d7;color:#6d604d}
+    .ship-status{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;background:#fff0c8;color:#805500;white-space:nowrap}
+    .ship-status.shipped{background:#dff4df;color:#236126}
+    .ship-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .type-badge{display:inline-flex;margin-top:6px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;background:#fff1d6;color:#8b5b00;border:1px solid #e4c77f}
     .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}
     .items{white-space:pre-wrap;background:#faf5e8;border:1px solid #ead9a8;border-radius:6px;padding:10px;font-size:13px;line-height:1.8}
@@ -82,6 +85,11 @@
           <option value="certification">檢定</option>
           <option value="competition">賽事</option>
         </select>
+        <select id="shippingFilter">
+          <option value="all">全部出貨</option>
+          <option value="not_shipped">未出貨</option>
+          <option value="shipped">已出貨</option>
+        </select>
         <input id="monthFilter" type="month" aria-label="訂單月份">
         <button type="button" onclick="loadOrders()">重新整理</button>
       </div>
@@ -100,6 +108,14 @@
 
     function escapeHtml(text){
       return String(text||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    function formatDate(value){
+      return value ? String(value).slice(0,10) : '';
+    }
+
+    function shippingLabel(order){
+      return (order.shipping_status||'not_shipped')==='shipped' ? '已出貨' : '未出貨';
     }
 
     function orderTypeLabel(order){
@@ -137,8 +153,9 @@
       const q=document.getElementById('searchInput').value.trim();
       const status=document.getElementById('statusFilter').value;
       const orderType=document.getElementById('typeFilter').value;
+      const shippingStatus=document.getElementById('shippingFilter').value;
       const month=document.getElementById('monthFilter').value;
-      const params=new URLSearchParams({status,orderType});
+      const params=new URLSearchParams({status,orderType,shippingStatus});
       if(q)params.set('q',q);
       if(month)params.set('month',month);
       const res=await api('/api/admin/orders?'+params.toString());
@@ -165,13 +182,20 @@
               </div>
               <div class="type-badge">${escapeHtml(orderTypeLabel(order))}</div>
             </div>
-            <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'待付款'}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <span class="status ${escapeHtml(order.status)}">${labels[order.status]||order.status||'???'}</span>
+              <span class="ship-status ${escapeHtml(order.shipping_status||'not_shipped')}">${shippingLabel(order)}</span>
+            </div>
           </div>
           <div class="grid">
             <div>
               <div class="items">${escapeHtml(order.items_text||order.session_label||'')}</div>
               <div class="meta" style="margin-top:8px;">合計：${order.total?('NT$ '+Number(order.total).toLocaleString()):'含洽詢項目'}｜付款：${escapeHtml(order.payment||'')}</div>
               ${order.status==='partial_payment'?`<div class="meta" style="margin-top:4px;">已收：${order.partial_paid_amount?('NT$ '+Number(order.partial_paid_amount).toLocaleString()):'未填'}｜尚欠：${order.balance_due_amount?('NT$ '+Number(order.balance_due_amount).toLocaleString()):'未填'}｜尾款期限：${escapeHtml(order.balance_due_date||'未填')}</div>`:''}
+              <div class="meta ship-row">
+                <span>最晚出貨：${escapeHtml(order.requested_ship_date||'未填')}</span>
+                <span>實際出貨：${escapeHtml(formatDate(order.shipped_at)||'未出貨')}</span>
+              </div>
             </div>
             <div class="fields">
               <div>
@@ -193,6 +217,21 @@
                 <input data-field="balanceDueDate" type="date" value="${escapeHtml(order.balance_due_date||'')}">
               </div>
               <div>
+                <label>最晚出貨日</label>
+                <input data-field="requestedShipDate" type="date" value="${escapeHtml(order.requested_ship_date||'')}">
+              </div>
+              <div>
+                <label>出貨狀態</label>
+                <select data-field="shippingStatus">
+                  <option value="not_shipped" ${(order.shipping_status||'not_shipped')!=='shipped'?'selected':''}>未出貨</option>
+                  <option value="shipped" ${(order.shipping_status||'not_shipped')==='shipped'?'selected':''}>已出貨</option>
+                </select>
+              </div>
+              <div>
+                <label>實際出貨日</label>
+                <input data-field="shippedDate" type="date" value="${escapeHtml(formatDate(order.shipped_at))}">
+              </div>
+              <div>
                 <label>上課日期</label>
                 <input data-field="sessionDate" type="date" value="${escapeHtml(order.session_date||'')}">
               </div>
@@ -211,6 +250,10 @@
               <div style="grid-column:1/-1">
                 <label>尾款備註</label>
                 <textarea data-field="partialPaymentNote" rows="2" placeholder="例：尾款三個月後補，或上課前補齊。">${escapeHtml(order.partial_payment_note||'')}</textarea>
+              </div>
+              <div style="grid-column:1/-1">
+                <label>出貨備註</label>
+                <textarea data-field="shippingNote" rows="2" placeholder="例：客人指定 7/10 前出貨，已用黑貓寄出。">${escapeHtml(order.shipping_note||'')}</textarea>
               </div>
               <div style="grid-column:1/-1">
                 <label>給學員的提醒備註</label>
@@ -241,6 +284,10 @@
         sessionLocation:card.querySelector('[data-field="sessionLocation"]').value,
         studentNotice:card.querySelector('[data-field="studentNotice"]').value,
         sessionLabel:card.querySelector('[data-field="sessionLabel"]').value,
+        requestedShipDate:card.querySelector('[data-field="requestedShipDate"]').value,
+        shippingStatus:card.querySelector('[data-field="shippingStatus"]').value,
+        shippedDate:card.querySelector('[data-field="shippedDate"]').value,
+        shippingNote:card.querySelector('[data-field="shippingNote"]').value,
         note:card.querySelector('[data-field="note"]').value,
         notifyReschedule
       };
@@ -282,6 +329,7 @@
     document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadOrders();});
     document.getElementById('statusFilter').addEventListener('change',loadOrders);
     document.getElementById('typeFilter').addEventListener('change',loadOrders);
+    document.getElementById('shippingFilter').addEventListener('change',loadOrders);
     document.getElementById('monthFilter').addEventListener('change',loadOrders);
     if(token){showApp();loadOrders();}
   </script>

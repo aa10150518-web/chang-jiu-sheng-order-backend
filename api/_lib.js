@@ -243,6 +243,10 @@ function normalizeOrder(body) {
     session_date: mainCourse.sessionDate,
     session_time: body.sessionTime || '',
     session_location: body.sessionLocation || body.shippingAddress || '',
+    requested_ship_date: body.requestedShipDate || body.requested_ship_date || body.latestShipDate || null,
+    shipping_status: body.shippingStatus || body.shipping_status || 'not_shipped',
+    shipped_at: body.shippedAt || body.shipped_at || null,
+    shipping_note: body.shippingNote || body.shipping_note || '',
   };
 }
 
