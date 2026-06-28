@@ -221,10 +221,9 @@ function normalizeOrder(body) {
     noteParts.push(`收件地址：${body.shippingAddress}`);
   }
   const payment = body.payment || '';
-  const isOnsitePayment = /現場/.test(payment) || body.paymentKind === 'onsite' || body.paymentStatus === '現場付款';
   return {
     order_no: body.orderNo || `CJS-${Date.now().toString().slice(-8)}`,
-    status: isOnsitePayment ? 'onsite_payment' : 'pending_payment',
+    status: body.status || body.orderStatus || 'pending_payment',
     order_type: body.orderType || 'registration',
     student_name: body.studentName || body.name || '',
     student_email: body.studentEmail || body.email || '',
